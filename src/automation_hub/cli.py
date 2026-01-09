@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import signal
 import time
+from shutil import which
+from threading import Event
 from pathlib import Path
 
 from automation_hub.adb.adb_client import AdbClient
@@ -36,7 +39,7 @@ def main() -> int:
 def run_service() -> int:
     config = load_config()
     ensure_directories([config.event_store_path.parent, config.state_store_path.parent, config.log_dir])
-    configure_logging(config.log_dir)
+    configure_logging(config.log_dir, log_level=config.log_level, console_level=config.console_log_level)
     logger = get_logger("automation_hub")
     adb_client = AdbClient(config.adb_path, config.device_id)
     event_store = EventStore(config.event_store_path)
@@ -52,8 +55,17 @@ def run_service() -> int:
     pipeline = Pipeline(config, state_store, event_store, registry)
 
     logger.info("Automation hub started")
+    stop_event = Event()
+
+    def _handle_signal(signum: int, _: object) -> None:
+        logger.info("Shutdown requested (signal %s)", signum)
+        stop_event.set()
+
+    signal.signal(signal.SIGINT, _handle_signal)
+    if hasattr(signal, "SIGTERM"):
+        signal.signal(signal.SIGTERM, _handle_signal)
     try:
-        while True:
+        while not stop_event.is_set():
             for trigger in registry.triggers():
                 try:
                     events = trigger.poll()
@@ -71,8 +83,14 @@ def run_service() -> int:
 
 def run_doctor() -> int:
     config = load_config()
-    configure_logging(config.log_dir)
+    configure_logging(config.log_dir, log_level=config.log_level, console_level=config.console_log_level)
     logger = get_logger("automation_hub.doctor")
+    if config.adb_path != "adb" and not Path(config.adb_path).exists():
+        logger.error("ADB path not found: %s", config.adb_path)
+        return 1
+    if config.adb_path == "adb" and not which("adb"):
+        logger.error("ADB not found on PATH. Run setup_windows.ps1 or install platform-tools.")
+        return 1
     adb_client = AdbClient(config.adb_path, config.device_id)
     try:
         statuses = adb_client.list_device_statuses()

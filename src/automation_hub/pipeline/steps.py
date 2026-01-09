@@ -15,6 +15,8 @@ def dedupe(state_store: StateStore, event: Event) -> Event | None:
         return event
     key = f"dedupe:{event.dedupe_key}"
     if state_store.has_processed(key):
+        logger = get_logger("automation_hub.pipeline", event.correlation_id)
+        logger.debug("Event deduped")
         return None
     state_store.mark_processed(key)
     return event
