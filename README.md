@@ -83,24 +83,21 @@ python -m automation_hub doctor
 python -m automation_hub run
 ```
 
-## One-Click Launcher (Recommended)
+## One-Click Scripts (Recommended)
 
-After downloading and extracting the ZIP, double-click:
+After downloading and extracting the ZIP, double-click the script you want:
 
 ```
+Setup_Automation_Hub.bat
+Doctor_Automation_Hub.bat
 Run_Automation_Hub.bat
+Tail_Logs_Automation_Hub.bat
 ```
 
-This opens a simple Windows GUI with buttons for **Setup**, **Doctor**, **Run**, and **Tail Logs**. The launcher:
+Each script:
 - Runs from the correct folder automatically (no manual `cd` needed).
-- Checks Python and ADB availability.
-- Invokes the setup script if configuration or platform-tools are missing.
-
-You can also use the launcher from PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File automation_hub_launcher.ps1 -Gui
-```
+- Checks Python and ADB availability (Doctor/Run).
+- Invokes the setup script if configuration or platform-tools are missing (Doctor/Run).
 
 ## CLI Commands
 - `python -m automation_hub run` — start the long-running service (polls WhatsApp notifications + SMS inbox and executes enabled actions)

@@ -48,11 +48,18 @@ class AdbClient:
         return self.run(["shell", *args], timeout=timeout)
 
     def list_devices(self) -> list[str]:
-        proc = self.run(["devices"]) 
+        proc = self.run(["devices"])
         if proc.returncode != 0:
             raise RuntimeError(proc.stderr.strip() or "adb devices failed")
-        lines = [line for line in proc.stdout.splitlines() if "\tdevice" in line]
-        return [line.split("\t", 1)[0] for line in lines]
+        devices: list[str] = []
+        for line in proc.stdout.splitlines():
+            line = line.strip()
+            if not line or line.lower().startswith("list of devices"):
+                continue
+            parts = line.split()
+            if len(parts) >= 2 and parts[1].strip().lower() == "device":
+                devices.append(parts[0])
+        return devices
 
     def fetch_whatsapp_notifications(self) -> list[AdbNotification]:
         proc = self.shell("dumpsys notification --noredact")
