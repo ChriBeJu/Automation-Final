@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $repoRoot
+$env:PYTHONPATH = "$repoRoot/src;$env:PYTHONPATH"
 
 function Test-Python {
     $pythonVersion = (& python --version 2>&1)
