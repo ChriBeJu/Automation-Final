@@ -20,6 +20,23 @@ def _parse_list(value: str | None) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _parse_news_feeds(value: str | None) -> list[tuple[str, str]]:
+    if not value:
+        return []
+    feeds: list[tuple[str, str]] = []
+    for entry in value.split(";"):
+        entry = entry.strip()
+        if not entry:
+            continue
+        if "|" in entry:
+            name, url = entry.split("|", 1)
+            name = name.strip() or url.strip()
+            feeds.append((name, url.strip()))
+        else:
+            feeds.append((entry, entry))
+    return feeds
+
+
 @dataclass(frozen=True)
 class Config:
     adb_path: str
@@ -34,8 +51,16 @@ class Config:
     event_store_path: Path
     state_store_path: Path
     log_dir: Path
+    log_level: str
+    console_log_level: str
     max_sms_len: int
     sms_split_len: int
+    news_feeds: list[tuple[str, str]]
+    news_max_items: int
+    news_timeout_sec: int
+    ollama_url: str
+    ollama_model: str
+    ollama_timeout_sec: int
 
     @classmethod
     def load(cls, env_path: Path) -> "Config":
@@ -56,8 +81,16 @@ class Config:
         event_store_path = Path(values.get("EVENT_STORE_PATH", "data/events.jsonl"))
         state_store_path = Path(values.get("STATE_STORE_PATH", "data/state.db"))
         log_dir = Path(values.get("LOG_DIR", "logs"))
+        log_level = values.get("LOG_LEVEL", "INFO")
+        console_log_level = values.get("CONSOLE_LOG_LEVEL", log_level)
         max_sms_len = int(values.get("MAX_SMS_LEN", "160"))
         sms_split_len = int(values.get("SMS_SPLIT_LEN", "153"))
+        news_feeds = _parse_news_feeds(values.get("NEWS_FEEDS"))
+        news_max_items = int(values.get("NEWS_MAX_ITEMS", "10"))
+        news_timeout_sec = int(values.get("NEWS_TIMEOUT_SEC", "12"))
+        ollama_url = values.get("OLLAMA_URL", "http://localhost:11434/api/generate")
+        ollama_model = values.get("OLLAMA_MODEL", "llama3.1:8b")
+        ollama_timeout_sec = int(values.get("OLLAMA_TIMEOUT_SEC", "30"))
         return cls(
             adb_path=adb_path,
             device_id=device_id,
@@ -71,8 +104,16 @@ class Config:
             event_store_path=event_store_path,
             state_store_path=state_store_path,
             log_dir=log_dir,
+            log_level=log_level,
+            console_log_level=console_log_level,
             max_sms_len=max_sms_len,
             sms_split_len=sms_split_len,
+            news_feeds=news_feeds,
+            news_max_items=news_max_items,
+            news_timeout_sec=news_timeout_sec,
+            ollama_url=ollama_url,
+            ollama_model=ollama_model,
+            ollama_timeout_sec=ollama_timeout_sec,
         )
 
 

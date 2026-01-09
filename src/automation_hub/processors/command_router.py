@@ -8,6 +8,8 @@ from automation_hub.logging_utils import get_logger
 from automation_hub.models import ActionResult, Event
 from automation_hub.pipeline.pipeline import wrap_action_result
 from automation_hub.processors.command_parser import Command, parse_command
+from automation_hub.services.news_service import NewsFeed, NewsItem, NewsService
+from automation_hub.services.ollama_client import OllamaClient
 from automation_hub.utils.sms_utils import split_sms
 
 
@@ -29,9 +31,19 @@ class SmsCommandRouterAction:
         self.adb_client = adb_client
         self.config = config
         self.logger = get_logger("automation_hub.action.sms_commands")
+        self.news_service = NewsService(
+            feeds=[NewsFeed(name, url) for name, url in config.news_feeds],
+            timeout_sec=config.news_timeout_sec,
+            max_items=config.news_max_items,
+        )
+        self.ollama_client = (
+            OllamaClient(config.ollama_url, config.ollama_model, config.ollama_timeout_sec)
+            if config.enable_llm
+            else None
+        )
         self.handlers: dict[str, Handler] = {
             "HELP": _help_handler,
-            "NEWS": _stub_handler,
+            "NEWS": self._news_handler,
             "INFO": _stub_handler,
         }
 
@@ -65,3 +77,44 @@ class SmsCommandRouterAction:
                 )
             results.append(wrap_action_result(event, result))
         return results
+
+    def _news_handler(self, command: Command) -> str:
+        items = self.news_service.fetch_items()
+        if not items:
+            return "NEWS: keine Feeds/keine Daten."
+        headline_text = " | ".join(
+            _format_news_item(item, include_summary=bool(item.summary)) for item in items
+        )
+        if command.topic:
+            headline_text = f"Topic: {command.topic}. {headline_text}"
+        if self.ollama_client:
+            prompt = _build_news_prompt(headline_text)
+            try:
+                response = self.ollama_client.summarize(prompt)
+            except Exception as exc:  # noqa: BLE001
+                self.logger.warning("Ollama summarization failed: %s", exc)
+                response = ""
+            if response:
+                return response
+        return headline_text
+
+
+def _format_news_item(item: NewsItem, include_summary: bool) -> str:
+    source = getattr(item, "source", "NEWS")
+    title = getattr(item, "title", "")
+    summary = getattr(item, "summary", "")
+    if include_summary and summary:
+        return f"[{source}] {title} - {summary}"
+    return f"[{source}] {title}"
+
+
+def _build_news_prompt(headline_text: str) -> str:
+    return (
+        "Fasse die folgenden News extrem kurz zusammen.\n"
+        "Regeln:\n"
+        "- Deutsch.\n"
+        "- Maximal 1-2 SMS (je ~140 Zeichen), insgesamt so kurz wie möglich.\n"
+        "- Nur die wichtigsten Punkte, keine Einleitung, keine Floskeln.\n"
+        "- Ausgabe als reiner Text.\n\n"
+        f"News:\n{headline_text}"
+    )

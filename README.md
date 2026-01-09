@@ -43,11 +43,11 @@ src/automation_hub/
   ```
 - Deduplicates messages and forwards exactly once.
 
-**Project B — SMS Inbox Listener**
+**Project B — SMS Inbox Listener + News**
 - Polls inbound SMS via `content://sms/inbox`.
 - Parses lightweight commands (HELP, NEWS, INFO, N, !).
 - Replies to HELP with supported commands.
-- Sends stub replies for NEWS/INFO/N/!.
+- Fetches RSS/Atom feeds for NEWS and optionally summarizes with Ollama.
 
 ## Windows Setup
 
@@ -117,6 +117,9 @@ Key settings include:
 - `ALLOWED_SMS_SENDERS`
 - `POLL_INTERVAL_SEC`
 - Feature toggles: `ENABLE_SMS_COMMANDS`, `ENABLE_WHATSAPP_FORWARDING`, `ENABLE_LLM`
+- Logging: `LOG_LEVEL`, `CONSOLE_LOG_LEVEL`
+- News: `NEWS_FEEDS`, `NEWS_MAX_ITEMS`, `NEWS_TIMEOUT_SEC`
+- Ollama: `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_SEC`
 
 ## Data & Logs
 - Events are stored as JSONL in `data/events.jsonl`.
@@ -146,6 +149,10 @@ Key settings include:
 
 **SMS content query fails**
 - Some OEM builds restrict `content://sms` access. If so, you may need to grant permissions via `adb shell appops` or use a helper app.
+
+**Ollama summary not working**
+- Ensure Ollama is running locally and `OLLAMA_URL` is reachable (default: `http://localhost:11434/api/generate`).
+- Set `ENABLE_LLM=true` to enable summarization.
 
 ## Plugin Contracts
 Plugins should implement the contracts in `automation_hub.plugins.base` and register themselves via the registry in `automation_hub.plugins.registry`. Plugins should not import core internals directly; they should only depend on the interfaces and injected dependencies.

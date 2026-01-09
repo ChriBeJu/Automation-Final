@@ -19,6 +19,9 @@ class SmsSenderAction:
     def execute(self, event: Event) -> list[Event]:
         if event.event_type != "wa_notification":
             return []
+        if not self.config.sms_forward_number:
+            self.logger.warning("SMS forward number not configured; skipping WhatsApp forward")
+            return []
         sender = str(event.payload.get("sender") or "WhatsApp")
         timestamp = str(event.payload.get("timestamp") or "")
         content = str(event.payload.get("content") or "")
