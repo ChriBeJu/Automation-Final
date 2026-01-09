@@ -75,16 +75,24 @@ def run_doctor() -> int:
     logger = get_logger("automation_hub.doctor")
     adb_client = AdbClient(config.adb_path, config.device_id)
     try:
-        devices = adb_client.list_devices()
+        statuses = adb_client.list_device_statuses()
     except Exception as exc:  # noqa: BLE001
         logger.error("ADB error: %s", exc)
         return 1
-    if not devices:
+    if not statuses:
         logger.error("No devices detected")
+        return 1
+    devices = [device_id for device_id, status in statuses.items() if status == "device"]
+    non_ready = {device_id: status for device_id, status in statuses.items() if status != "device"}
+    if non_ready:
+        formatted = ", ".join(f"{device_id} ({status})" for device_id, status in non_ready.items())
+        logger.error("Devices not ready: %s", formatted)
+        logger.error("Fix: unlock the phone, accept the RSA prompt, or reconnect USB.")
+    if not devices:
         return 1
     logger.info("Devices detected: %s", ", ".join(devices))
     if config.device_id and config.device_id not in devices:
-        logger.error("Configured device_id not in devices list")
+        logger.error("Configured device_id not in ready devices list")
         return 1
     logger.info("Doctor checks passed")
     return 0

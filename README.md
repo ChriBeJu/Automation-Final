@@ -82,6 +82,10 @@ If you want to tweak anything later, edit `config.local.env` with:
 python -m automation_hub doctor
 python -m automation_hub run
 ```
+If you see `No module named automation_hub`, run from the repo root or use the one-click scripts. You can also set:
+```powershell
+$env:PYTHONPATH = "$PWD/src"
+```
 
 ## One-Click Scripts (Recommended)
 
@@ -128,6 +132,13 @@ Key settings include:
 **device offline**
 - Unplug/replug USB.
 - Check cable and USB mode.
+
+**device shows but not connected**
+- Run `adb devices` and confirm the status is `device`. If you see `unauthorized` or `offline`, unlock the phone and accept the RSA prompt, then reconnect USB.
+
+**No module named automation_hub**
+- Run from the repo root or use `Run_Automation_Hub.bat`.
+- For manual runs, set `PYTHONPATH` to `src` (example above) before calling `python -m automation_hub doctor`.
 
 **no notifications captured**
 - WhatsApp notification parsing depends on `dumpsys notification --noredact` output.
