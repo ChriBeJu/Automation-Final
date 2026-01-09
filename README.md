@@ -66,8 +66,13 @@ src/automation_hub/
 powershell -ExecutionPolicy Bypass -File setup_windows.ps1
 ```
 
+The setup script will:
+- Download Android platform-tools (ADB) into `tools/platform-tools` if they are missing.
+- Create `config.local.env` and prompt for the required values.
+- Write the detected ADB path into `ADB_PATH`.
+
 ### 4) Configure
-Edit `config.local.env` with:
+If you want to tweak anything later, edit `config.local.env` with:
 - `SMS_FORWARD_NUMBER` (the number to receive forwarded WhatsApp messages)
 - `ALLOWED_SMS_SENDERS` (allowed command senders)
 - `ADB_DEVICE_ID` if multiple devices are attached
@@ -79,8 +84,8 @@ python -m automation_hub run
 ```
 
 ## CLI Commands
-- `python -m automation_hub run` — start the long-running service
-- `python -m automation_hub doctor` — check adb/device/config
+- `python -m automation_hub run` — start the long-running service (polls WhatsApp notifications + SMS inbox and executes enabled actions)
+- `python -m automation_hub doctor` — verify ADB, device connectivity, and configuration; prints actionable diagnostics
 - `python -m automation_hub tail` — tail recent events
 
 ## Configuration
@@ -121,4 +126,3 @@ Plugins should implement the contracts in `automation_hub.plugins.base` and regi
 ## Development Notes
 - All ADB parsing is isolated to `automation_hub/adb/adb_client.py`.
 - Dependency injection is used for configuration and stores, enabling unit tests without ADB.
-
