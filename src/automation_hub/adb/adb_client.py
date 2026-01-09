@@ -44,6 +44,9 @@ class AdbClient:
     def shell(self, command: str, timeout: int = 15) -> subprocess.CompletedProcess[str]:
         return self.run(["shell", command], timeout=timeout)
 
+    def shell_args(self, args: Iterable[str], timeout: int = 15) -> subprocess.CompletedProcess[str]:
+        return self.run(["shell", *args], timeout=timeout)
+
     def list_devices(self) -> list[str]:
         proc = self.run(["devices"]) 
         if proc.returncode != 0:
@@ -66,12 +69,21 @@ class AdbClient:
         return _parse_sms_inbox(proc.stdout)
 
     def send_sms(self, number: str, body: str) -> None:
-        safe_body = body.replace("\"", "'")
-        command = (
-            "am start -a android.intent.action.SENDTO -d "
-            f"smsto:{number} --es sms_body \"{safe_body}\" --ez exit_on_sent true"
-        )
-        proc = self.shell(command, timeout=20)
+        args = [
+            "am",
+            "start",
+            "-a",
+            "android.intent.action.SENDTO",
+            "-d",
+            f"smsto:{number}",
+            "--es",
+            "sms_body",
+            body,
+            "--ez",
+            "exit_on_sent",
+            "true",
+        ]
+        proc = self.shell_args(args, timeout=20)
         if proc.returncode != 0:
             raise RuntimeError(proc.stderr.strip() or "SMS send failed")
 
