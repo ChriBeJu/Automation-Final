@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.config.local.env
+config.local.env
+data/state.db
+data/events.jsonl
+logs/*.log
